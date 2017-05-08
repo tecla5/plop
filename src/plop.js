@@ -70,11 +70,9 @@ function run(env) {
 	generators = plop.getGeneratorList();
 	if (!generator) {
 		out.chooseOptionFromList(generators).then(function (generatorName) {
-			console.log('get generator', generatorName)
 			doThePlop(plop.getGenerator(generatorName));
 		});
 	} else if (generators.map(function (v) {
-			console.log('plop generator', v.name)
 			return v.name;
 		}).indexOf(generator) > -1) {
 		doThePlop(plop.getGenerator(generator));
@@ -89,7 +87,11 @@ function run(env) {
 // everybody to the plop!
 //
 function doThePlop(generator) {
-	generator.runInputs().then(generator.runActions)
+	generator.runInputs().then(inputs => {
+			var actionExecName = Array.isArray(inputs) ? 'runListActions' : 'runActions'
+			var actionExec = generator[actionExecName]
+			return actionExec(inputs)
+		})
 		.then(function (result) {
 			result.changes.forEach(function (line) {
 				console.log(chalk.green('[SUCCESS]'), line.type, line.path);
