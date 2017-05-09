@@ -232,6 +232,39 @@ Once plop is installed, and you have created a generator, you are ready to run p
 
 Run `plop --help` to display the manual of different options you can pass to plop, e.g., specify a custom path to the plopfile.
 
+## Use plop as library
+
+You can also run the Plop generator completely standalone as follows.
+See [docker-gen](https://github.com/tecla5/docker-gen) for an example.
+
+It can even be optimized to the following:
+
+```js
+const plop = require('plop')
+
+plop.runGenerator({
+	name: name,
+	basePath: plopfilePath
+	// ...
+	inputs: (config) => {
+		data = Object.assign(data, {
+			root: 'app'
+		})
+		// console.log('data', data)
+		return data
+	},
+	// List of actions to take.
+	// Here we "add" new files from our templates.
+	actions: {
+		list: [{
+		}, {
+
+		}],
+		item: [{}, {}]
+	}
+}, xtraOpts)
+```
+
 ---
 
 # Why?

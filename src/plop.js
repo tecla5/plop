@@ -65,8 +65,9 @@ function run(env) {
 		process.exit(1);
 	}
 
+	var plopCfg = argv
 	// set the default base path to the plopfile directory
-	plop = nodePlop(plopfilePath);
+	plop = nodePlop(plopfilePath, plopCfg);
 	generators = plop.getGeneratorList();
 	if (!generator) {
 		out.chooseOptionFromList(generators).then(function (generatorName) {
@@ -75,7 +76,7 @@ function run(env) {
 	} else if (generators.map(function (v) {
 			return v.name;
 		}).indexOf(generator) > -1) {
-		doThePlop(plop.getGenerator(generator));
+		doThePlop(plop.getGenerator(generator), argv);
 	} else {
 		console.error(chalk.red('[PLOP] ') + 'Generator "' + generator + '" not found in plopfile');
 		process.exit(1);
@@ -86,13 +87,31 @@ function run(env) {
 /////
 // everybody to the plop!
 //
-function doThePlop(generator) {
+function doThePlop(generator, opts = {}) {
 	generator.runInputs().then(inputs => {
 			var actionExecName = Array.isArray(inputs) ? 'runListActions' : 'runActions'
+			if (inputs.list && inputs.item) {
+				var inputOpts = Object.assign({}, inputs)
+				delete inputOpts.item
+				delete inputOpts.list
+
+				var listOpts = Object.assign(opts, inputOpts, {
+					actions: 'list'
+				})
+				var itemOpts = Object.assign(opts, inputOpts, {
+					actions: 'item'
+				})
+				var listResults = generator.runListActions(inputs.list, listOpts)
+				var itemResults = generator.runActions(inputs.item, itemOpts)
+				return Promise.all([listResults, itemResults]);
+			}
 			var actionExec = generator[actionExecName]
 			return actionExec(inputs)
 		})
 		.then(function (result) {
+			if (Array.isArray(result)) {
+				result = result.reduce((acc, val) => Object.assign(acc, val), {})
+			}
 			result.changes.forEach(function (line) {
 				console.log(chalk.green('[SUCCESS]'), line.type, line.path);
 			});
@@ -115,4 +134,9 @@ function doThePlop(generator) {
 			console.error(chalk.red('[ERROR]'), err.message, err.stack);
 			process.exit(1);
 		});
+}
+
+
+module.exports = {
+	runGenerator: doThePlop
 }
