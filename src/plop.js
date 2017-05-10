@@ -95,14 +95,15 @@ function doThePlop(generator, opts = {}) {
 				delete inputOpts.item
 				delete inputOpts.list
 
-				var listOpts = Object.assign(opts, inputOpts, {
+				var listOpts = Object.assign({}, opts, inputOpts, {
 					actions: 'list'
 				})
-				var itemOpts = Object.assign(opts, inputOpts, {
+				var itemOpts = Object.assign({}, opts, inputOpts, {
 					actions: 'item'
 				})
 				var listResults = generator.runListActions(inputs.list, listOpts)
 				var itemResults = generator.runActions(inputs.item, itemOpts)
+
 				return Promise.all([listResults, itemResults]);
 			}
 			var actionExec = generator[actionExecName]
@@ -110,7 +111,14 @@ function doThePlop(generator, opts = {}) {
 		})
 		.then(function (result) {
 			if (Array.isArray(result)) {
-				result = result.reduce((acc, val) => Object.assign(acc, val), {})
+				result = result.reduce((acc, val) => {
+					acc.changes = acc.changes.concat(val.changes)
+					acc.failures = acc.failures.concat(val.failures)
+					return acc
+				}, {
+					changes: [],
+					failures: []
+				})
 			}
 			result.changes.forEach(function (line) {
 				console.log(chalk.green('[SUCCESS]'), line.type, line.path);
