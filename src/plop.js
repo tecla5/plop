@@ -8,7 +8,7 @@ var v8flags = require('v8flags');
 var interpret = require('interpret');
 var chalk = require('chalk');
 
-var nodePlop = require('node-plop');
+var { nodePlop } = require('node-plop');
 var out = require('./console-out');
 var globalPkg = require('../package.json');
 var generator = argv._.join(' ') || null;
@@ -65,9 +65,11 @@ function run(env) {
 		process.exit(1);
 	}
 
-	var plopCfg = argv
 	// set the default base path to the plopfile directory
+
+	var plopCfg = argv
 	plop = nodePlop(plopfilePath, plopCfg);
+	console.log('plop:', plop)
 	generators = plop.getGeneratorList();
 	if (!generator) {
 		out.chooseOptionFromList(generators).then(function (generatorName) {
@@ -76,75 +78,11 @@ function run(env) {
 	} else if (generators.map(function (v) {
 			return v.name;
 		}).indexOf(generator) > -1) {
-		doThePlop(plop.getGenerator(generator), argv);
+		// execute directly
+		doThePlop(plop.getGenerator(generator));
 	} else {
 		console.error(chalk.red('[PLOP] ') + 'Generator "' + generator + '" not found in plopfile');
 		process.exit(1);
 	}
 
-}
-
-/////
-// everybody to the plop!
-//
-function doThePlop(generator, opts = {}) {
-	generator.runInputs().then(inputs => {
-			var actionExecName = Array.isArray(inputs) ? 'runListActions' : 'runActions'
-			if (inputs.list && inputs.item) {
-				var inputOpts = Object.assign({}, inputs)
-				delete inputOpts.item
-				delete inputOpts.list
-
-				var listOpts = Object.assign({}, opts, inputOpts, {
-					actions: 'list'
-				})
-				var itemOpts = Object.assign({}, opts, inputOpts, {
-					actions: 'item'
-				})
-				var listResults = generator.runListActions(inputs.list, listOpts)
-				var itemResults = generator.runActions(inputs.item, itemOpts)
-
-				return Promise.all([listResults, itemResults]);
-			}
-			var actionExec = generator[actionExecName]
-			return actionExec(inputs)
-		})
-		.then(function (result) {
-			if (Array.isArray(result)) {
-				result = result.reduce((acc, val) => {
-					acc.changes = acc.changes.concat(val.changes)
-					acc.failures = acc.failures.concat(val.failures)
-					return acc
-				}, {
-					changes: [],
-					failures: []
-				})
-			}
-			result.changes.forEach(function (line) {
-				console.log(chalk.green('[SUCCESS]'), line.type, line.path);
-			});
-			result.failures.forEach(function (line) {
-				var logs = [chalk.red('[FAILED]')];
-				if (line.type) {
-					logs.push(line.type);
-				}
-				if (line.path) {
-					logs.push(line.path);
-				}
-
-				var error = line.error || line.message;
-				logs.push(chalk.red(error));
-
-				console.log.apply(console, logs);
-			});
-		})
-		.catch(function (err) {
-			console.error(chalk.red('[ERROR]'), err.message, err.stack);
-			process.exit(1);
-		});
-}
-
-
-module.exports = {
-	runGenerator: doThePlop
 }

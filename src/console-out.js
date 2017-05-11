@@ -1,7 +1,7 @@
 'use strict';
 
 var chalk = require('chalk');
-var nodePlop = require('node-plop');
+var { nodePlop } = require('node-plop');
 var fs = require('fs');
 
 const noop = () => {}
